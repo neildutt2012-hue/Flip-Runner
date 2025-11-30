@@ -1,125 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Hyper Ride</title>
-  <style>
-    body { margin:0; font-family: Arial,sans-serif; background:#0d0d0d; color:#fff; line-height:1.7; }
-    header { background:#111; text-align:center; padding:2rem 0; border-bottom:2px solid #444; }
-    header h1 { margin:0; font-size:2.5rem; color:#00bcd4; }
-    nav { margin-top:1rem; }
-    nav a { color:#ccc; text-decoration:none; margin:0 1rem; font-weight:500; }
-    nav a:hover { color:#00bcd4; }
-    section { padding:2rem 1.5rem; border-bottom:1px solid #222; }
-    h2 { color:#00bcd4; text-align:center; margin-bottom:1.5rem; }
-    article { background:#1a1a1a; padding:1.5rem; margin:1rem auto; max-width:900px; border-radius:8px; }
-    article h3 { margin-top:0; color:#ff9800; }
-    footer { text-align:center; padding:1.5rem; background:#111; border-top:2px solid #444; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flip Runner</title>
+<style>
+  :root{
+    --bg:#04020b;
+    --floor:#0a1020;
+    --player:#7cffd6;
+    --obstacle:#ff6b6b;
+    --text:#e9f8f3;
+    --muted:#95a8b3;
+  }
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);display:flex;justify-content:center;align-items:center;font-family:sans-serif;overflow:hidden;}
+  canvas{background:linear-gradient(180deg,#041123,#020512);display:block;}
+  .hud{position:absolute;top:16px;left:16px;color:var(--text);font-weight:bold;font-size:18px;}
+  .btn{position:absolute;top:16px;right:16px;padding:8px 12px;background:rgba(255,255,255,0.05);border:none;color:var(--text);cursor:pointer;border-radius:8px;font-weight:bold;}
+</style>
 </head>
 <body>
-  <header>
-    <h1>My Hyper Ride</h1>
-    <nav>
-      <a href="#cars">Cars</a>
-      <a href="#tech">Tech</a>
-      <a href="#reviews">Reviews</a>
-    </nav>
-  </header>
+<div class="hud">Score: <span id="score">0</span></div>
+<button class="btn" id="restartBtn" style="display:none;">Restart</button>
+<canvas id="gameCanvas"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = 1000;
+let H = canvas.height = 400;
 
-  <!-- Cars Section -->
-  <section id="cars">
-    <h2>Cars</h2>
+// resize for mobile
+function resizeCanvas(){
+  const ratio = 16/9;
+  let width = window.innerWidth - 32;
+  let height = window.innerHeight - 32;
+  if(width/height>ratio) width = height*ratio;
+  else height = width/ratio;
+  canvas.style.width = width+'px';
+  canvas.style.height = height+'px';
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
 
-    <article>
-      <h3>Lamborghini Aventador Review</h3>
-      <p>The Lamborghini Aventador is a V12-powered supercar that represents the pinnacle of Italian automotive engineering. Its naturally aspirated 6.5L V12 engine produces up to 770 horsepower, enabling it to accelerate from 0 to 60 mph in under three seconds. Advanced aerodynamics, lightweight carbon fiber construction, and active suspension systems give the Aventador incredible handling and stability, even at extreme speeds. Inside, the cockpit combines luxury and technology, featuring a fully digital dashboard, customizable driving modes, and premium materials. Lamborghini achieves a perfect balance of power, sound, and driving dynamics, creating an exhilarating experience that engages all senses.</p>
-    </article>
+// Game state
+let player = {x:150,y:H-60,w:40,h:40,vY:0,onGround:true,flipped:false};
+let obstacles = [];
+let speed = 6;
+let score = 0;
+let gameOver = false;
 
-    <article>
-      <h3>Ferrari SF90 vs McLaren Artura</h3>
-      <p>Both the Ferrari SF90 and McLaren Artura are hybrid supercars blending combustion engines with electric power. The SF90 combines a V8 with three electric motors for 986 hp, focusing on maximum acceleration and track performance. The Artura uses a V6 hybrid system producing 671 hp, emphasizing lightweight agility and precision handling. Ferrari’s systems are finely tuned for raw power and thrilling straight-line speed, while McLaren prioritizes cornering dynamics and driver engagement. Choosing between them depends on whether you value ultimate horsepower or a balanced, precise driving experience.</p>
-    </article>
+// Controls
+let input = false;
+function flip(){
+  if(gameOver) return;
+  player.flipped = !player.flipped;
+  player.vY = 0;
+}
+window.addEventListener('keydown',e=>{if(e.code==='Space') flip();});
+canvas.addEventListener('pointerdown',flip);
 
-    <article>
-      <h3>Tesla Model S Plaid Acceleration</h3>
-      <p>The Tesla Model S Plaid is an electric car redefining performance with tri-motor all-wheel drive producing 1020 hp. Its instant torque allows acceleration from 0 to 60 mph in under 2 seconds. Tesla’s battery technology, software optimization, and aerodynamic design maximize range and efficiency. The minimalist interior integrates AI-driven Autopilot features, offering semi-autonomous driving capabilities. The Model S Plaid proves that electric vehicles can match or exceed traditional supercars in speed and handling while maintaining everyday usability.</p>
-    </article>
+// Obstacles
+function spawnObstacle(){
+  let h = 40 + Math.random()*40;
+  let y = player.flipped ? 0 : H - h;
+  obstacles.push({x:W+20,y:h===0?0:y,w:20,h:h});
+}
 
-    <article>
-      <h3>Bugatti Chiron Secrets</h3>
-      <p>The Bugatti Chiron is a hypercar designed to break speed records while providing ultimate luxury. Its 8.0L W16 quad-turbo engine produces 1500 hp. Chiron achieves top speeds above 300 mph through meticulous engineering, lightweight materials, and advanced aerodynamics. Each component, from suspension to transmission, is optimized for extreme performance. Bugatti engineers focus on airflow, cooling, and stability to maintain control at ultra-high speeds. The car blends blistering performance with handcrafted interior luxury, making it a masterpiece of automotive technology.</p>
-    </article>
+// Restart
+const restartBtn = document.getElementById('restartBtn');
+restartBtn.addEventListener('click',()=>{
+  player.y = H-60; player.vY=0; player.flipped=false; obstacles=[]; speed=6; score=0; gameOver=false; restartBtn.style.display='none'; requestAnimationFrame(gameLoop);
+});
 
-    <article>
-      <h3>Koenigsegg Jesko Overview</h3>
-      <p>Koenigsegg Jesko is a Swedish hypercar with a twin-turbo V8 producing up to 1600 hp on E85 fuel. Its lightweight carbon fiber chassis, active aerodynamics, and innovative transmission allow extreme acceleration and top speed. The Jesko incorporates cutting-edge technology like active suspension, smart airflow management, and advanced driver control systems. Koenigsegg’s focus on engineering precision ensures every system works in harmony, creating a hypercar capable of mind-blowing speed while remaining stable and safe at extreme limits.</p>
-    </article>
-  </section>
+// Main loop
+let lastTime = performance.now();
+let spawnTimer = 0;
+function gameLoop(now){
+  let dt = now - lastTime;
+  lastTime = now;
+  if(gameOver) return;
 
-  <!-- Tech Section -->
-  <section id="tech">
-    <h2>Tech</h2>
+  // Clear
+  ctx.clearRect(0,0,W,H);
 
-    <article>
-      <h3>iPhone 17 Pro Max Review</h3>
-      <p>The iPhone 17 Pro Max introduces a futuristic design with a titanium frame and a thinner, lighter body. Its 200MP main camera integrates AI-driven computational photography, delivering professional-grade images and cinematic video automatically. The A23 Bionic chip powers AI features, advanced gaming, and multitasking with energy efficiency. Apple’s focus on combining hardware and software provides an intuitive experience that adapts to user behavior. This device represents a leap forward in smartphone technology, offering unmatched performance and intelligence.</p>
-    </article>
+  // Player physics
+  const gravity = 0.7;
+  if(player.flipped){
+    player.vY -= gravity;
+    if(player.y<0){player.y=0;player.vY=0;player.onGround=true;}
+    else player.onGround=false;
+  } else {
+    player.vY += gravity;
+    if(player.y+player.h>H){player.y=H-player.h;player.vY=0;player.onGround=true;}
+    else player.onGround=false;
+  }
+  player.y += player.vY;
 
-    <article>
-      <h3>Samsung S25 Ultra vs iPhone 17</h3>
-      <p>The Samsung Galaxy S25 Ultra features a 200MP camera, large AMOLED display, and high-capacity battery. Compared to the iPhone 17, it excels in raw hardware specs like zoom and display size. The iPhone focuses on AI-driven photography, system integration, and smooth user experience. Users must choose between raw specs and optimized smart features. Both phones showcase the latest advancements in mobile technology, demonstrating how AI, display innovation, and computational photography are shaping flagship devices.</p>
-    </article>
+  // Draw player
+  ctx.fillStyle='#7cffd6';
+  ctx.fillRect(player.x,player.y,player.w,player.h);
 
-    <article>
-      <h3>AI in Modern Cars</h3>
-      <p>Artificial intelligence in modern cars enables advanced driver assistance, semi-autonomous driving, and predictive safety features. Sensors feed real-time data into neural networks that detect obstacles, predict traffic behavior, and optimize performance. Tesla’s Full Self-Driving system, for example, interprets complex scenarios and reacts instantly to dynamic road conditions. AI improves efficiency, reduces accidents, and creates a safer driving experience while preparing the ground for fully autonomous vehicles in the future.</p>
-    </article>
+  // Obstacles
+  spawnTimer += dt;
+  if(spawnTimer>1200){
+    spawnTimer=0;
+    spawnObstacle();
+  }
+  for(let i=obstacles.length-1;i>=0;i--){
+    obstacles[i].x -= speed;
+    ctx.fillStyle='#ff6b6b';
+    ctx.fillRect(obstacles[i].x,obstacles[i].y,obstacles[i].w,obstacles[i].h);
+    // collision
+    if(player.x<obstacles[i].x+obstacles[i].w &&
+       player.x+player.w>obstacles[i].x &&
+       player.y<obstacles[i].y+obstacles[i].h &&
+       player.y+player.h>obstacles[i].y){
+         gameOver=true;
+         restartBtn.style.display='block';
+    }
+    if(obstacles[i].x+obstacles[i].w<0) obstacles.splice(i,1);
+  }
 
-    <article>
-      <h3>Quantum Chips in 2030</h3>
-      <p>Quantum computing promises to revolutionize technology with qubits capable of superposition and entanglement, performing complex calculations that classical computers cannot. Future quantum chips will optimize AI algorithms, simulate chemical reactions, and solve cryptography challenges exponentially faster. Companies are developing chips to handle real-world applications like financial modeling, logistics, and advanced scientific research. Understanding how quantum chips work is key to preparing for the next technological era.</p>
-    </article>
+  // Score
+  score += dt*0.01;
+  document.getElementById('score').textContent = Math.floor(score);
 
-    <article>
-      <h3>Next-gen Smartwatches</h3>
-      <p>Future smartwatches will integrate AI to provide proactive health monitoring, gesture recognition, and even brainwave analysis. Advanced sensors will track heart rate, oxygen saturation, sleep cycles, and stress indicators. AI algorithms process this data in real time, offering actionable insights and predictive alerts. Smartwatches will evolve from passive trackers into personal health assistants, capable of detecting early health issues and guiding lifestyle decisions.</p>
-    </article>
-  </section>
+  // Draw floor and ceiling
+  ctx.fillStyle='#0a1020';
+  ctx.fillRect(0,H-10,W,10);
+  ctx.fillRect(0,0,W,10);
 
-  <!-- Reviews Section -->
-  <section id="reviews">
-    <h2>Reviews & Comparisons</h2>
-
-    <article>
-      <h3>Lamborghini vs Ferrari</h3>
-      <p>Comparing Lamborghini and Ferrari requires examining performance, handling, and design philosophy. Lamborghini emphasizes raw power, dramatic styling, and a visceral driving experience. Ferrari focuses on precision, hybrid performance, and track-tuned dynamics. Choosing between them depends on whether the driver prioritizes pure adrenaline and design spectacle or balanced performance with finesse. Both represent the pinnacle of automotive engineering.</p>
-    </article>
-
-    <article>
-      <h3>iPhone 17 vs Samsung S25 Camera Battle</h3>
-      <p>This comparison evaluates image quality, AI enhancements, and low-light performance. iPhone 17 uses computational photography to merge multiple frames, while Samsung S25 leverages larger sensors and higher zoom capability. The iPhone excels at producing consistent, realistic images with AI-guided enhancements, whereas Samsung produces highly detailed raw captures. Users choose based on whether they prefer AI-optimized simplicity or hardware-driven control.</p>
-    </article>
-
-    <article>
-      <h3>Electric Cars: Tesla vs Lucid</h3>
-      <p>Tesla vehicles offer instant torque, proven infrastructure, and semi-autonomous driving capabilities. Lucid vehicles prioritize luxury, aerodynamics, and long-range battery efficiency. Tesla excels in network and AI features, while Lucid focuses on ride comfort and engineering precision. Understanding the strengths of each helps users select the right EV based on driving style, environment, and lifestyle priorities.</p>
-    </article>
-
-    <article>
-      <h3>Gaming Laptops 2025</h3>
-      <p>The latest gaming laptops combine high-performance CPUs, RTX 5000-series GPUs, advanced cooling, and high-refresh-rate OLED displays. These machines are capable of competitive gaming and creative work without bottlenecks. Features like fast NVMe storage, efficient thermal design, and AI-enhanced graphics processing enable seamless gameplay and professional-level rendering, making them versatile devices for gamers and creators alike.</p>
-    </article>
-
-    <article>
-      <h3>Top 5 Tech Gadgets</h3>
-      <p>This selection includes AI earbuds, foldable phones, advanced drones, smart glasses, and AR/VR devices. Each gadget combines hardware innovation with intelligent software to enhance productivity, entertainment, and daily life. From real-time language translation to immersive gaming experiences, these gadgets demonstrate how technology is transforming the way we live, work, and play.</p>
-    </article>
-  </section>
-
-  <footer>
-    <p>© 2025 My Hyper Ride | Cars, Tech & Reviews</p>
-  </footer>
+  if(!gameOver) requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+</script>
 </body>
 </html>
